@@ -1,5 +1,7 @@
 python-dotenv
 requests
+pandas
+numpy
 # local package
 -e .
 
