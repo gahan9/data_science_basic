@@ -86,41 +86,42 @@ class GenerateDataSet(TitanicDisaster):
         """
         self.logger.info("Processing data")
         # using method chaining
-        return (self.df
-                # create title attribute - then add this
-                .assign(Title=lambda x: x.Name.map(self.get_title))
-                # working missing values - start with this
-                .pipe(self.fill_missing_values)
-                # create fare bin feature
-                .assign(Fare_Bin=lambda x: pd.qcut(x.Fare, 4, labels=['very_low', 'low', 'high', 'very_high']))
-                # create age state
-                .assign(AgeState=lambda x: np.where(x.Age >= 18, 'Adult', 'Child'))
-                .assign(FamilySize=lambda x: x.Parch + x.SibSp + 1)
-                .assign(IsMother=lambda x: np.where(((x.Sex == 'female') & (x.Parch > 0) & (x.Age > 18) & (x.Title != 'Miss')), 1, 0))
-                # create deck feature
-                .assign(Cabin=lambda x: np.where(x.Cabin == 'T', np.nan, x.Cabin))
-                .assign(Deck=lambda x: x.Cabin.map(self.get_deck))
-                # feature encoding
-                .assign(IsMale=lambda x: np.where(x.Sex == 'male', 1, 0))
-                .pipe(pd.get_dummies, columns=['Deck', 'Pclass', 'Title', 'Fare_Bin', 'Embarked', 'AgeState'])
-                # add code to drop unnecessary columns
-                .drop(['Cabin', 'Name', 'Ticket', 'Parch', 'SibSp', 'Sex'], axis=1)
-                # reorder columns
-                .pipe(self.reorder_columns)
-                )
+        self.df = (self.df
+                   # create title attribute - then add this
+                   .assign(Title=lambda x: x.Name.map(self.get_title))
+                   # working missing values - start with this
+                   .pipe(self.fill_missing_values)
+                   # create fare bin feature
+                   .assign(Fare_Bin=lambda x: pd.qcut(x.Fare, 4, labels=['very_low', 'low', 'high', 'very_high']))
+                   # create age state
+                   .assign(AgeState=lambda x: np.where(x.Age >= 18, 'Adult', 'Child'))
+                   .assign(FamilySize=lambda x: x.Parch + x.SibSp + 1)
+                   .assign(IsMother=lambda x: np.where(((x.Sex == 'female') & (x.Parch > 0) & (x.Age > 18) & (x.Title != 'Miss')), 1, 0))
+                   # create deck feature
+                   .assign(Cabin=lambda x: np.where(x.Cabin == 'T', np.nan, x.Cabin))
+                   .assign(Deck=lambda x: x.Cabin.map(self.get_deck))
+                   # feature encoding
+                   .assign(IsMale=lambda x: np.where(x.Sex == 'male', 1, 0))
+                   .pipe(pd.get_dummies, columns=['Deck', 'Pclass', 'Title', 'Fare_Bin', 'Embarked', 'AgeState'])
+                   # add code to drop unnecessary columns
+                   .drop(['Cabin', 'Name', 'Ticket', 'Parch', 'SibSp', 'Sex'], axis=1)
+                   # reorder columns
+                   .pipe(self.reorder_columns)
+                   )
+        return self.df
 
-    def write_data(self, df):
+    def write_data(self):
         self.logger.info("writing data to csv")
         # train data
-        df[df.Survived != -888].to_csv(self.write_train_path)
+        self.df[self.df.Survived != -888].to_csv(self.write_train_path)
         self.logger.info("train data saved at : {}".format(self.write_train_path))
         # test data
-        columns = [col for col in df.columns if col != "Survived"]
-        df[df.Survived == -888][columns].to_csv(self.write_test_path)
+        columns = [col for col in self.df.columns if col != "Survived"]
+        self.df[self.df.Survived == -888][columns].to_csv(self.write_test_path)
         self.logger.info("test data saved at : {}".format(self.write_test_path))
 
 
 if __name__ == "__main__":
     data_set_obj = GenerateDataSet()
-    df = data_set_obj.process_data()
-    data_set_obj.write_data(df)
+    data_set_obj.process_data()
+    data_set_obj.write_data()
